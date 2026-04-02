@@ -3,6 +3,7 @@ import { isUltrathinkEnabled } from './thinking.js'
 import { getInitialSettings } from './settings/settings.js'
 import { isProSubscriber, isMaxSubscriber, isTeamSubscriber } from './auth.js'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from 'src/services/analytics/growthbook.js'
+import { readCustomApiStorage } from './customApiStorage.js'
 import { getAPIProvider } from './model/providers.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
 import { isEnvTruthy } from './envUtils.js'
@@ -11,6 +12,7 @@ import type { EffortLevel } from 'src/entrypoints/sdk/runtimeTypes.js'
 export type { EffortLevel }
 
 export const EFFORT_LEVELS = [
+  'none',
   'low',
   'medium',
   'high',
@@ -18,6 +20,14 @@ export const EFFORT_LEVELS = [
 ] as const satisfies readonly EffortLevel[]
 
 export type EffortValue = EffortLevel | number
+
+export function isOpenAICompatProvider(): boolean {
+  return readCustomApiStorage().provider === 'openai'
+}
+
+export function modelSupportsNoThinking(model: string): boolean {
+  return modelSupportsEffort(model) && isOpenAICompatProvider()
+}
 
 // @[MODEL LAUNCH]: Add the new model to the allowlist if it supports the effort parameter.
 export function modelSupportsEffort(model: string): boolean {
@@ -95,7 +105,12 @@ export function parseEffortValue(value: unknown): EffortValue | undefined {
 export function toPersistableEffort(
   value: EffortValue | undefined,
 ): EffortLevel | undefined {
-  if (value === 'low' || value === 'medium' || value === 'high') {
+  if (
+    value === 'none' ||
+    value === 'low' ||
+    value === 'medium' ||
+    value === 'high'
+  ) {
     return value
   }
   if (value === 'max' && process.env.USER_TYPE === 'ant') {
@@ -176,7 +191,7 @@ export function getDisplayedEffortLevel(
   appStateEffort: EffortValue | undefined,
 ): EffortLevel {
   const resolved = resolveAppliedEffort(model, appStateEffort) ?? 'high'
-  return convertEffortValueToLevel(resolved)
+  return convertEffortValueToLevel(resolved === 'none' ? 'low' : resolved)
 }
 
 /**
@@ -192,6 +207,7 @@ export function getEffortSuffix(
   if (effortValue === undefined) return ''
   const resolved = resolveAppliedEffort(model, effortValue)
   if (resolved === undefined) return ''
+  if (resolved === 'none') return ' with no thinking'
   return ` with ${convertEffortValueToLevel(resolved)} effort`
 }
 
@@ -223,6 +239,8 @@ export function convertEffortValueToLevel(value: EffortValue): EffortLevel {
  */
 export function getEffortLevelDescription(level: EffortLevel): string {
   switch (level) {
+    case 'none':
+      return 'Respond without extended thinking'
     case 'low':
       return 'Quick, straightforward implementation with minimal overhead'
     case 'medium':

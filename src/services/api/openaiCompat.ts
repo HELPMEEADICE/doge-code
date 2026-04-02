@@ -37,6 +37,8 @@ export type OpenAIChatRequest = {
   model: string
   messages: OpenAIChatMessage[]
   stream?: boolean
+  enable_thinking?: boolean
+  thinking_budget?: number
   temperature?: number
   tools?: Array<{
     type: 'function'
@@ -130,6 +132,10 @@ export function convertAnthropicRequestToOpenAI(input: {
   tool_choice?: BetaToolChoiceAuto | BetaToolChoiceTool
   temperature?: number
   max_tokens?: number
+  thinking?: {
+    type?: 'enabled' | 'disabled' | 'adaptive'
+    budget_tokens?: number
+  }
 }): OpenAIChatRequest {
   const configuredModel = process.env.ANTHROPIC_MODEL?.trim()
   const targetModel = configuredModel || input.model
@@ -199,6 +205,12 @@ export function convertAnthropicRequestToOpenAI(input: {
   return {
     model: targetModel,
     messages,
+    enable_thinking:
+      input.thinking?.type === 'enabled' || input.thinking?.type === 'adaptive',
+    ...(input.thinking?.type === 'enabled' &&
+    typeof input.thinking.budget_tokens === 'number'
+      ? { thinking_budget: input.thinking.budget_tokens }
+      : {}),
     temperature: input.temperature,
     max_tokens: input.max_tokens,
     ...(getToolDefinitions(input.tools)

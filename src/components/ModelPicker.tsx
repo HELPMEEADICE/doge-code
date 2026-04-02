@@ -8,7 +8,7 @@ import { FAST_MODE_MODEL_DISPLAY, isFastModeAvailable, isFastModeCooldown, isFas
 import { Box, Text } from '../ink.js';
 import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { useAppState, useSetAppState } from '../state/AppState.js';
-import { convertEffortValueToLevel, type EffortLevel, getDefaultEffortForModel, modelSupportsEffort, modelSupportsMaxEffort, resolvePickerEffortPersistence, toPersistableEffort } from '../utils/effort.js';
+import { convertEffortValueToLevel, type EffortLevel, getDefaultEffortForModel, modelSupportsEffort, modelSupportsMaxEffort, modelSupportsNoThinking, resolvePickerEffortPersistence } from '../utils/effort.js';
 import { getDefaultMainLoopModel, type ModelSetting, modelDisplayString, parseUserSpecifiedModel } from '../utils/model/model.js';
 import { getModelOptions } from '../utils/model/modelOptions.js';
 import { getSettingsForSource, updateSettingsForSource } from '../utils/settings/settings.js';
@@ -145,59 +145,64 @@ export function ModelPicker(t0) {
   }
   const focusedModelName = t7;
   let focusedSupportsEffort;
+  let focusedSupportsNoThinking;
   let t8;
   if ($[20] !== focusedValue) {
     const focusedModel = resolveOptionModel(focusedValue);
     focusedSupportsEffort = focusedModel ? modelSupportsEffort(focusedModel) : false;
+    focusedSupportsNoThinking = focusedModel ? modelSupportsNoThinking(focusedModel) : false;
     t8 = focusedModel ? modelSupportsMaxEffort(focusedModel) : false;
     $[20] = focusedValue;
     $[21] = focusedSupportsEffort;
-    $[22] = t8;
+    $[22] = focusedSupportsNoThinking;
+    $[23] = t8;
   } else {
     focusedSupportsEffort = $[21];
-    t8 = $[22];
+    focusedSupportsNoThinking = $[22];
+    t8 = $[23];
   }
   const focusedSupportsMax = t8;
   let t9;
-  if ($[23] !== focusedValue) {
+  if ($[24] !== focusedValue) {
     t9 = getDefaultEffortLevelForOption(focusedValue);
-    $[23] = focusedValue;
-    $[24] = t9;
+    $[24] = focusedValue;
+    $[25] = t9;
   } else {
-    t9 = $[24];
+    t9 = $[25];
   }
   const focusedDefaultEffort = t9;
   const displayEffort = effort === "max" && !focusedSupportsMax ? "high" : effort;
   let t10;
-  if ($[25] !== effortValue || $[26] !== hasToggledEffort) {
+  if ($[26] !== effortValue || $[27] !== hasToggledEffort) {
     t10 = value => {
       setFocusedValue(value);
       if (!hasToggledEffort && effortValue === undefined) {
         setEffort(getDefaultEffortLevelForOption(value));
       }
     };
-    $[25] = effortValue;
-    $[26] = hasToggledEffort;
-    $[27] = t10;
+    $[26] = effortValue;
+    $[27] = hasToggledEffort;
+    $[28] = t10;
   } else {
-    t10 = $[27];
+    t10 = $[28];
   }
   const handleFocus = t10;
   let t11;
-  if ($[28] !== focusedDefaultEffort || $[29] !== focusedSupportsEffort || $[30] !== focusedSupportsMax) {
+  if ($[29] !== focusedDefaultEffort || $[30] !== focusedSupportsEffort || $[31] !== focusedSupportsMax || $[32] !== focusedSupportsNoThinking) {
     t11 = direction => {
       if (!focusedSupportsEffort) {
         return;
       }
-      setEffort(prev => cycleEffortLevel(prev ?? focusedDefaultEffort, direction, focusedSupportsMax));
+      setEffort(prev => cycleEffortLevel(prev ?? focusedDefaultEffort, direction, focusedSupportsMax, focusedSupportsNoThinking));
       setHasToggledEffort(true);
     };
-    $[28] = focusedDefaultEffort;
-    $[29] = focusedSupportsEffort;
-    $[30] = focusedSupportsMax;
-    $[31] = t11;
+    $[29] = focusedDefaultEffort;
+    $[30] = focusedSupportsEffort;
+    $[31] = focusedSupportsMax;
+    $[32] = focusedSupportsNoThinking;
+    $[33] = t11;
   } else {
-    t11 = $[31];
+    t11 = $[33];
   }
   const handleCycleEffort = t11;
   let t12;
@@ -229,12 +234,9 @@ export function ModelPicker(t0) {
       });
       if (!skipSettingsWrite) {
         const effortLevel = resolvePickerEffortPersistence(effort, getDefaultEffortLevelForOption(value_0), getSettingsForSource("userSettings")?.effortLevel, hasToggledEffort);
-        const persistable = toPersistableEffort(effortLevel);
-        if (persistable !== undefined) {
-          updateSettingsForSource("userSettings", {
-            effortLevel: persistable
-          });
-        }
+        updateSettingsForSource("userSettings", {
+          effortLevel: effortLevel === 'none' ? undefined : effortLevel as 'low' | 'medium' | 'high' | 'max' | undefined
+        });
         setAppState(prev_0 => ({
           ...prev_0,
           effortValue: effortLevel
@@ -408,7 +410,7 @@ function EffortLevelIndicator(t0) {
     effort
   } = t0;
   const t1 = effort ? "claude" : "subtle";
-  const t2 = effort ?? "low";
+  const t2 = effort === "none" ? "low" : effort ?? "low";
   let t3;
   if ($[0] !== t2) {
     t3 = effortLevelToSymbol(t2);
@@ -428,8 +430,8 @@ function EffortLevelIndicator(t0) {
   }
   return t4;
 }
-function cycleEffortLevel(current: EffortLevel, direction: 'left' | 'right', includeMax: boolean): EffortLevel {
-  const levels: EffortLevel[] = includeMax ? ['low', 'medium', 'high', 'max'] : ['low', 'medium', 'high'];
+function cycleEffortLevel(current: EffortLevel, direction: 'left' | 'right', includeMax: boolean, includeNone: boolean): EffortLevel {
+  const levels: EffortLevel[] = includeMax ? [...(includeNone ? ['none' as EffortLevel] : []), 'low', 'medium', 'high', 'max'] : [...(includeNone ? ['none' as EffortLevel] : []), 'low', 'medium', 'high'];
   // If the current level isn't in the cycle (e.g. 'max' after switching to a
   // non-Opus model), clamp to 'high'.
   const idx = levels.indexOf(current);

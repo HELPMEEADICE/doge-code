@@ -1821,6 +1821,7 @@ async function* queryModel(
             tool_choice: params.tool_choice,
             temperature: params.temperature,
             max_tokens: params.max_tokens,
+            thinking: params.thinking,
           })
           if (!openAIRequest.messages || openAIRequest.messages.length === 0) {
             throw new Error(
