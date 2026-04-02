@@ -294,9 +294,6 @@ export function MCPListPanel(t0) {
     t16 = $[36];
   }
   const hasFailedClients = t16;
-  if (servers.length === 0 && agentServers.length === 0) {
-    return null;
-  }
   let t17;
   if ($[37] !== getServerIndex || $[38] !== selectedIndex || $[39] !== theme) {
     t17 = server_3 => {

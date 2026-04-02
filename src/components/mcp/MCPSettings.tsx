@@ -146,9 +146,6 @@ export function MCPSettings(t0) {
       if (servers.length === 0 && filteredClients.length > 0) {
         return;
       }
-      if (servers.length === 0 && agentMcpServers.length === 0) {
-        onComplete("No MCP servers configured. Please run /doctor if this is unexpected. Otherwise, run `claude mcp --help` or visit https://code.claude.com/docs/en/mcp to learn more.");
-      }
     };
     t8 = [servers.length, filteredClients.length, agentMcpServers.length, onComplete];
     $[10] = agentMcpServers.length;
