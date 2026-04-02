@@ -9,11 +9,22 @@ import { Box, Text } from '../ink.js';
 import { getSSLErrorHint } from '../services/api/errorUtils.js';
 import { getUserAgent } from './http.js';
 import { logError } from './log.js';
+
+function shouldHijackAnthropicConnectivityError(result: PreflightCheckResult | null): boolean {
+  if (!result || result.success || !result.error) {
+    return false;
+  }
+  return /Failed to connect to .*anthropic|oauth|claude/i.test(result.error);
+}
 export interface PreflightCheckResult {
   success: boolean;
   error?: string;
   sslHint?: string;
 }
+
+type ErrorWithCode = Error & {
+  code?: string;
+};
 async function checkEndpoints(): Promise<PreflightCheckResult> {
   try {
     const oauthConfig = getOauthConfig();
@@ -41,7 +52,7 @@ async function checkEndpoints(): Promise<PreflightCheckResult> {
         const sslHint = getSSLErrorHint(error);
         return {
           success: false,
-          error: `Failed to connect to ${hostname}: ${error instanceof Error ? (error as ErrnoException).code || error.message : String(error)}`,
+          error: `Failed to connect to ${hostname}: ${error instanceof Error ? (error as ErrorWithCode).code || error.message : String(error)}`,
           sslHint: sslHint ?? undefined
         };
       }
@@ -68,7 +79,7 @@ async function checkEndpoints(): Promise<PreflightCheckResult> {
     });
     return {
       success: false,
-      error: `Connectivity check error: ${error instanceof Error ? (error as ErrnoException).code || error.message : String(error)}`
+      error: `Connectivity check error: ${error instanceof Error ? (error as ErrorWithCode).code || error.message : String(error)}`
     };
   }
 }
@@ -106,7 +117,7 @@ export function PreflightStep(t0) {
   let t4;
   if ($[2] !== onSuccess || $[3] !== result) {
     t3 = () => {
-      if (result?.success) {
+      if (result?.success || shouldHijackAnthropicConnectivityError(result)) {
         onSuccess();
       } else {
         if (result && !result.success) {
@@ -127,7 +138,7 @@ export function PreflightStep(t0) {
   useEffect(t3, t4);
   let t5;
   if ($[6] !== isChecking || $[7] !== result || $[8] !== showSpinner) {
-    t5 = isChecking && showSpinner ? <Box paddingLeft={1}><Spinner /><Text>Checking connectivity...</Text></Box> : !result?.success && !isChecking && <Box flexDirection="column" gap={1}><Text color="error">Unable to connect to Anthropic services</Text><Text color="error">{result?.error}</Text>{result?.sslHint ? <Box flexDirection="column" gap={1}><Text>{result.sslHint}</Text><Text color="suggestion">See https://code.claude.com/docs/en/network-config</Text></Box> : <Box flexDirection="column" gap={1}><Text>Please check your internet connection and network settings.</Text><Text>Note: Claude Code might not be available in your country. Check supported countries at{" "}<Text color="suggestion">https://anthropic.com/supported-countries</Text></Text></Box>}</Box>;
+    t5 = isChecking && showSpinner ? <Box paddingLeft={1}><Spinner /><Text>Checking connectivity...</Text></Box> : !result?.success && !isChecking && !shouldHijackAnthropicConnectivityError(result) && <Box flexDirection="column" gap={1}><Text color="error">Unable to connect to Anthropic services</Text><Text color="error">{result?.error}</Text>{result?.sslHint ? <Box flexDirection="column" gap={1}><Text>{result.sslHint}</Text><Text color="suggestion">See https://code.claude.com/docs/en/network-config</Text></Box> : <Box flexDirection="column" gap={1}><Text>Please check your internet connection and network settings.</Text><Text>Note: Claude Code might not be available in your country. Check supported countries at{" "}<Text color="suggestion">https://anthropic.com/supported-countries</Text></Text></Box>}</Box>;
     $[6] = isChecking;
     $[7] = result;
     $[8] = showSpinner;

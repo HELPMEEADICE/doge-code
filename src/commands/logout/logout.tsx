@@ -9,6 +9,7 @@ import { clearRemoteManagedSettingsCache } from '../../services/remoteManagedSet
 import { getClaudeAIOAuthTokens, removeApiKey } from '../../utils/auth.js';
 import { clearBetasCaches } from '../../utils/betas.js';
 import { saveGlobalConfig } from '../../utils/config.js';
+import { clearCustomApiStorage } from '../../utils/customApiStorage.js';
 import { gracefulShutdownSync } from '../../utils/gracefulShutdown.js';
 import { getSecureStorage } from '../../utils/secureStorage/index.js';
 import { clearToolSchemaCache } from '../../utils/toolSchemaCache.js';
@@ -26,6 +27,7 @@ export async function performLogout({
   // Wipe all secure storage data on logout
   const secureStorage = getSecureStorage();
   secureStorage.delete();
+  clearCustomApiStorage();
   await clearAuthRelatedCaches();
   saveGlobalConfig(current => {
     const updated = {
