@@ -3220,6 +3220,7 @@ export function REPL({
           setInputValue('');
           helpers.setCursorOffset(0);
           helpers.clearBuffer();
+          helpers.resetHistory();
           setPastedContents({});
         }
         const pastedTextRefs = parseReferences(input).filter(r => pastedContents[r.id]?.type === 'text');

@@ -379,26 +379,19 @@ export function generateCommandSuggestions(
     ].map(cmd => createCommandSuggestionItem(cmd))
   }
 
-  // The Fuse index filters isHidden at build time and is keyed on the
-  // (memoized) commands array identity, so a command that is hidden when Fuse
-  // first builds stays invisible to Fuse for the whole session. If the user
-  // types the exact name of a currently-hidden command, prepend it to the
-  // Fuse results so exact-name always wins over weak description fuzzy
-  // matches — but only when no visible command shares the name (that would
-  // be the user's explicit override and should win). Prepend rather than
-  // early-return so visible prefix siblings (e.g. /voice-memo) still appear
-  // below, and getBestCommandMatch can still find a non-empty suffix.
+  // Exact name matches should always appear first, even if Fuse misses them
+  // due to a stale index or fuzzy threshold. Prefer the visible command when
+  // both visible/hidden variants share the same name.
+  const visibleExact = commands.find(
+    cmd => !cmd.isHidden && getCommandName(cmd).toLowerCase() === query,
+  )
   let hiddenExact = commands.find(
     cmd => cmd.isHidden && getCommandName(cmd).toLowerCase() === query,
   )
-  if (
-    hiddenExact &&
-    commands.some(
-      cmd => !cmd.isHidden && getCommandName(cmd).toLowerCase() === query,
-    )
-  ) {
+  if (hiddenExact && visibleExact) {
     hiddenExact = undefined
   }
+  const exactMatch = visibleExact ?? hiddenExact
 
   const fuse = getCommandFuse(commands)
   const searchResults = fuse.search(query)
@@ -482,16 +475,13 @@ export function generateCommandSuggestions(
     const matchedAlias = findMatchedAlias(query, cmd.aliases)
     return createCommandSuggestionItem(cmd, matchedAlias)
   })
-  // Skip the prepend if hiddenExact is already in fuseSuggestions — this
-  // happens when isHidden flips false→true mid-session (OAuth expiry,
-  // GrowthBook kill-switch) and the stale Fuse index still holds the
-  // command. Fuse already sorts exact-name matches first, so no reorder
-  // is needed; we just don't want a duplicate id (duplicate React keys,
-  // both rows rendering as selected).
-  if (hiddenExact) {
-    const hiddenId = getCommandId(hiddenExact)
-    if (!fuseSuggestions.some(s => s.id === hiddenId)) {
-      return [createCommandSuggestionItem(hiddenExact), ...fuseSuggestions]
+  // Skip the prepend if the exact match is already in fuseSuggestions — this
+  // happens when Fuse already returned it, or when a stale index still holds a
+  // command that later became hidden. We just don't want duplicate ids.
+  if (exactMatch) {
+    const exactId = getCommandId(exactMatch)
+    if (!fuseSuggestions.some(s => s.id === exactId)) {
+      return [createCommandSuggestionItem(exactMatch), ...fuseSuggestions]
     }
   }
   return fuseSuggestions

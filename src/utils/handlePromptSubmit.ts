@@ -260,6 +260,7 @@ export async function handlePromptSubmit(
       setCursorOffset(0)
       setPastedContents({})
       clearBuffer()
+      resetHistory()
 
       const context = getToolUseContext(
         messages,
