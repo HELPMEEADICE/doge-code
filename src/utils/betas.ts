@@ -25,7 +25,7 @@ import { OAUTH_BETA_HEADER } from '../constants/oauth.js'
 import { isClaudeAISubscriber } from './auth.js'
 import { has1mContext } from './context.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
-import { getCanonicalName } from './model/model.js'
+import { getCanonicalName, isClaudeModel } from './model/model.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
 import { getAPIProvider } from './model/providers.js'
 import { getInitialSettings } from './settings/settings.js'
@@ -251,7 +251,7 @@ export const getAllModelBetas = memoize((model: string): string[] => {
   if (isClaudeAISubscriber()) {
     betaHeaders.push(OAUTH_BETA_HEADER)
   }
-  if (has1mContext(model)) {
+  if (has1mContext(model) && isClaudeModel(model)) {
     betaHeaders.push(CONTEXT_1M_BETA_HEADER)
   }
   if (

@@ -8,6 +8,14 @@ import { getModelCapability } from './model/modelCapabilities.js'
 // Model context window size (200k tokens for all models right now)
 export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
 
+export type ModelContextSuffix = {
+  baseModel: string
+  suffixText: string
+  contextTokens: number
+}
+
+const MODEL_CONTEXT_SUFFIX_PATTERN = /\[(\d+)([km]?)\]$/i
+
 // Maximum output tokens for compact operations
 export const COMPACT_MAX_OUTPUT_TOKENS = 20_000
 
@@ -32,11 +40,51 @@ export function is1mContextDisabled(): boolean {
   return isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_1M_CONTEXT)
 }
 
-export function has1mContext(model: string): boolean {
+export function parseModelContextSuffix(
+  model: string,
+): ModelContextSuffix | null {
   if (is1mContextDisabled()) {
-    return false
+    return null
   }
-  return /\[1m\]/i.test(model)
+
+  const trimmedModel = model.trim()
+  const match = trimmedModel.match(MODEL_CONTEXT_SUFFIX_PATTERN)
+  if (!match) {
+    return null
+  }
+
+  const value = Number.parseInt(match[1] ?? '', 10)
+  if (!Number.isFinite(value) || value <= 0) {
+    return null
+  }
+
+  const unit = (match[2] ?? '').toLowerCase()
+  const multiplier = unit === 'm' ? 1_000_000 : unit === 'k' ? 1_000 : 1
+  const contextTokens = value * multiplier
+  const suffixText = `[${value}${unit}]`
+  const baseModel = trimmedModel.slice(0, -match[0].length).trim()
+
+  if (!baseModel) {
+    return null
+  }
+
+  return {
+    baseModel,
+    suffixText,
+    contextTokens,
+  }
+}
+
+export function stripModelContextSuffix(model: string): string {
+  return parseModelContextSuffix(model)?.baseModel ?? model.trim()
+}
+
+export function hasContextSuffix(model: string): boolean {
+  return parseModelContextSuffix(model) !== null
+}
+
+export function has1mContext(model: string): boolean {
+  return hasContextSuffix(model)
 }
 
 // @[MODEL LAUNCH]: Update this pattern if the new model supports 1M context
@@ -66,9 +114,9 @@ export function getContextWindowForModel(
     }
   }
 
-  // [1m] suffix — explicit client-side opt-in, respected over all detection
-  if (has1mContext(model)) {
-    return 1_000_000
+  const explicitContextSuffix = parseModelContextSuffix(model)
+  if (explicitContextSuffix) {
+    return explicitContextSuffix.contextTokens
   }
 
   const cap = getModelCapability(model)

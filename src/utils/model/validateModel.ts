@@ -1,4 +1,5 @@
 // biome-ignore-all assist/source/organizeImports: ANT-ONLY import markers must not be reordered
+import { stripModelContextSuffix } from '../context.js'
 import { MODEL_ALIASES } from './aliases.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { getAPIProvider } from './providers.js'
@@ -38,7 +39,7 @@ export async function validateModel(
   }
 
   // Check if it's a known alias (these are always valid)
-  const lowerModel = normalizedModel.toLowerCase()
+  const lowerModel = stripModelContextSuffix(normalizedModel).toLowerCase()
   if ((MODEL_ALIASES as readonly string[]).includes(lowerModel)) {
     return { valid: true }
   }

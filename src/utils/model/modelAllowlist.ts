@@ -1,3 +1,4 @@
+import { stripModelContextSuffix } from '../context.js'
 import { getSettings_DEPRECATED } from '../settings/settings.js'
 import { isModelAlias, isModelFamilyAlias } from './aliases.js'
 import { parseUserSpecifiedModel } from './model.js'
@@ -108,7 +109,7 @@ export function isModelAllowed(model: string): boolean {
   }
 
   const resolvedModel = resolveOverriddenModel(model)
-  const normalizedModel = resolvedModel.trim().toLowerCase()
+  const normalizedModel = stripModelContextSuffix(resolvedModel).trim().toLowerCase()
   const normalizedAllowlist = availableModels.map(m => m.trim().toLowerCase())
 
   // Direct match (alias-to-alias or full-name-to-full-name)

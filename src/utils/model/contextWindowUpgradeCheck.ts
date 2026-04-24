@@ -1,5 +1,6 @@
+import { parseModelContextSuffix } from '../context.js'
 import { checkOpus1mAccess, checkSonnet1mAccess } from './check1mAccess.js'
-import { getUserSpecifiedModelSetting } from './model.js'
+import { getUserSpecifiedModelSetting, isClaudeModel } from './model.js'
 
 // @[MODEL LAUNCH]: Add a branch for the new model if it supports a 1M context upgrade path.
 /**
@@ -12,6 +13,12 @@ function getAvailableUpgrade(): {
   multiplier: number
 } | null {
   const currentModelSetting = getUserSpecifiedModelSetting()
+  if (!currentModelSetting || !isClaudeModel(currentModelSetting)) {
+    return null
+  }
+  if (parseModelContextSuffix(currentModelSetting)) {
+    return null
+  }
   if (currentModelSetting === 'opus' && checkOpus1mAccess()) {
     return {
       alias: 'opus[1m]',

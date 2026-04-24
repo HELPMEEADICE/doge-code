@@ -13,7 +13,7 @@ import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastMo
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
 import { checkOpus1mAccess, checkSonnet1mAccess } from '../../utils/model/check1mAccess.js';
 import { getCurrentCustomApiProviderWithIndex, persistCustomApiProviders, readCustomApiProvidersStorage, readCustomApiStorage } from '../../utils/customApiStorage.js';
-import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
+import { getDefaultMainLoopModelSetting, isClaudeModel, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 function ModelPickerWrapper(t0) {
@@ -267,13 +267,13 @@ function isKnownAlias(model: string): boolean {
 }
 function isOpus1mUnavailable(model: string): boolean {
   const m = model.toLowerCase();
-  return !checkOpus1mAccess() && !isOpus1mMergeEnabled() && m.includes('opus') && m.includes('[1m]');
+  return isClaudeModel(model) && !checkOpus1mAccess() && !isOpus1mMergeEnabled() && m.includes('opus') && m.includes('[');
 }
 function isSonnet1mUnavailable(model: string): boolean {
   const m = model.toLowerCase();
   // Warn about Sonnet and Sonnet 4.6, but not Sonnet 4.5 since that had
   // a different access criteria.
-  return !checkSonnet1mAccess() && (m.includes('sonnet[1m]') || m.includes('sonnet-4-6[1m]'));
+  return isClaudeModel(model) && !checkSonnet1mAccess() && (m.includes('sonnet[') || m.includes('sonnet-4-6['));
 }
 function ShowModelAndClose(t0) {
   const {

@@ -1,3 +1,5 @@
+import { stripModelContextSuffix } from '../context.js'
+
 export const MODEL_ALIASES = [
   'sonnet',
   'opus',
@@ -10,7 +12,9 @@ export const MODEL_ALIASES = [
 export type ModelAlias = (typeof MODEL_ALIASES)[number]
 
 export function isModelAlias(modelInput: string): modelInput is ModelAlias {
-  return MODEL_ALIASES.includes(modelInput as ModelAlias)
+  return MODEL_ALIASES.includes(
+    stripModelContextSuffix(modelInput).toLowerCase() as ModelAlias,
+  )
 }
 
 /**
