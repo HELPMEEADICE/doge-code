@@ -124,7 +124,7 @@ function ProviderManager({ onDone }: Props): React.ReactNode {
         description: 'Rename provider',
       },
       {
-        label: `API format: ${formatCustomApiProviderType(provider.provider)}`,
+        label: `API format: ${provider.provider === 'openai' ? provider.openaiCompatMode === 'responses' ? 'OpenAI Responses API' : 'OpenAI Chat Completions' : formatCustomApiProviderType(provider.provider)}`,
         value: 'type',
         description: 'Change API type',
       },
@@ -218,9 +218,14 @@ function ProviderManager({ onDone }: Props): React.ReactNode {
                 description: 'Anthropic API-compatible endpoint',
               },
               {
-                label: 'OpenAI-compatible',
-                value: 'openai',
-                description: 'OpenAI-compatible endpoint',
+                label: 'OpenAI Chat Completions',
+                value: 'openai:chat_completions',
+                description: 'OpenAI-compatible Chat Completions API',
+              },
+              {
+                label: 'OpenAI Responses API',
+                value: 'openai:responses',
+                description: 'OpenAI-compatible Responses API',
               },
               {
                 label: 'Gemini API',
@@ -229,17 +234,16 @@ function ProviderManager({ onDone }: Props): React.ReactNode {
               },
             ]}
             onChange={value => {
+              const nextProvider = value.startsWith('openai:') ? 'openai' : value
+              const nextOpenAIMode = value === 'openai:responses' ? 'responses' : value === 'openai:chat_completions' ? 'chat_completions' : undefined
               updateCustomApiProviders(current => ({
                 ...current,
                 providers: (current.providers ?? []).map(item =>
                   item.id === provider.id
                     ? {
                         ...item,
-                        provider: value as CustomApiProvider,
-                        openaiCompatMode:
-                          value === 'openai'
-                            ? item.openaiCompatMode ?? 'chat_completions'
-                            : undefined,
+                        provider: nextProvider as CustomApiProvider,
+                        openaiCompatMode: nextProvider === 'openai' ? nextOpenAIMode ?? 'chat_completions' : undefined,
                       }
                     : item,
                 ),
