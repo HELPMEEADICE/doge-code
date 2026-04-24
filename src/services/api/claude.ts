@@ -24,7 +24,10 @@ import {
   getAPIProvider,
   isFirstPartyAnthropicBaseUrl,
 } from 'src/utils/model/providers.js'
-import { readCustomApiStorage } from 'src/utils/customApiStorage.js'
+import {
+  readCustomApiProvidersStorage,
+  readCustomApiStorage,
+} from 'src/utils/customApiStorage.js'
 import {
   convertAnthropicRequestToGemini,
   createAnthropicStreamFromGemini,
@@ -99,6 +102,7 @@ import {
   stripToolReferenceBlocksFromUserMessage,
 } from '../../utils/messages.js'
 import {
+  getConfiguredProviderIdForModel,
   getDefaultOpusModel,
   getDefaultSonnetModel,
   getSmallFastModel,
@@ -1821,7 +1825,13 @@ async function* queryModel(
         // BetaMessageStream calls partialParse() on every input_json_delta, which we don't need
         // since we handle tool input accumulation ourselves
         // biome-ignore lint/plugin: main conversation loop handles attribution separately
-        const customApiConfig = readCustomApiStorage()
+        const configuredProviderId = getConfiguredProviderIdForModel(params.model)
+        const configuredProvider = configuredProviderId
+          ? readCustomApiProvidersStorage().providers?.find(
+              provider => provider.id === configuredProviderId,
+            )
+          : undefined
+        const customApiConfig = configuredProvider ?? readCustomApiStorage()
         const compatProvider = customApiConfig.provider ?? 'anthropic'
         const openAICompatMode = customApiConfig.openaiCompatMode ?? 'chat_completions'
         if (compatProvider === 'gemini') {
@@ -1843,14 +1853,14 @@ async function* queryModel(
           }
           const reader = await createGeminiCompatStream(
             {
-              apiKey: process.env.DOGE_API_KEY || '',
-              baseURL: process.env.ANTHROPIC_BASE_URL || '',
+              apiKey: customApiConfig.apiKey || process.env.DOGE_API_KEY || '',
+              baseURL: customApiConfig.baseURL || process.env.ANTHROPIC_BASE_URL || '',
               headers: clientRequestId
                 ? { [CLIENT_REQUEST_ID_HEADER]: clientRequestId }
                 : undefined,
               fetch: globalThis.fetch,
             },
-            process.env.ANTHROPIC_MODEL?.trim() || params.model,
+            customApiConfig.model?.trim() || params.model,
             geminiRequest,
             signal,
           )
@@ -1862,8 +1872,8 @@ async function* queryModel(
         }
         if (compatProvider === 'openai') {
           const compatConfig = {
-            apiKey: process.env.DOGE_API_KEY || '',
-            baseURL: process.env.ANTHROPIC_BASE_URL || '',
+            apiKey: customApiConfig.apiKey || process.env.DOGE_API_KEY || '',
+            baseURL: customApiConfig.baseURL || process.env.ANTHROPIC_BASE_URL || '',
             headers: clientRequestId
               ? { [CLIENT_REQUEST_ID_HEADER]: clientRequestId }
               : undefined,
