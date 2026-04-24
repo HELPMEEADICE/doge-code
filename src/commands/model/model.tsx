@@ -12,7 +12,7 @@ import { isBilledAsExtraUsage } from '../../utils/extraUsage.js';
 import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
 import { checkOpus1mAccess, checkSonnet1mAccess } from '../../utils/model/check1mAccess.js';
-import { getCurrentCustomApiProviderWithIndex, readCustomApiStorage } from '../../utils/customApiStorage.js';
+import { getCurrentCustomApiProviderWithIndex, persistCustomApiProviders, readCustomApiProvidersStorage, readCustomApiStorage } from '../../utils/customApiStorage.js';
 import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
@@ -45,12 +45,21 @@ function ModelPickerWrapper(t0) {
   const handleCancel = t1;
   let t2;
   if ($[3] !== isFastMode || $[4] !== mainLoopModel || $[5] !== onDone || $[6] !== setAppState) {
-    t2 = function handleSelect(model, effort) {
+    t2 = function handleSelect(model, effort, option) {
         logEvent("tengu_model_command_menu", {
           action: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
           from_model: mainLoopModel as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         to_model: model as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
+      if (option?.providerId) {
+        const providerStorage = readCustomApiProvidersStorage();
+        if (providerStorage.currentProviderId !== option.providerId) {
+          persistCustomApiProviders({
+            currentProviderId: option.providerId,
+            providers: providerStorage.providers ?? []
+          });
+        }
+      }
       setAppState(prev => ({
         ...prev,
         mainLoopModel: model,
@@ -78,6 +87,28 @@ function ModelPickerWrapper(t0) {
       }
       if (wasFastModeToggledOn === false) {
         message = message + " \xB7 Fast mode OFF";
+      }
+      if (option?.providerId) {
+        const providerStorage = readCustomApiProvidersStorage();
+        const selectedIndex = providerStorage.providers?.findIndex(provider => provider.id === option.providerId) ?? -1;
+        const selectedProvider = selectedIndex >= 0 ? providerStorage.providers?.[selectedIndex] : undefined;
+        if (selectedProvider?.baseURL) {
+          process.env.ANTHROPIC_BASE_URL = selectedProvider.baseURL;
+        } else {
+          delete process.env.ANTHROPIC_BASE_URL;
+        }
+        if (selectedProvider?.apiKey) {
+          process.env.DOGE_API_KEY = selectedProvider.apiKey;
+        } else {
+          delete process.env.DOGE_API_KEY;
+        }
+        if (selectedProvider?.model) {
+          process.env.ANTHROPIC_MODEL = selectedProvider.model;
+        } else if (model) {
+          process.env.ANTHROPIC_MODEL = model;
+        } else {
+          delete process.env.ANTHROPIC_MODEL;
+        }
       }
       onDone(message);
     };

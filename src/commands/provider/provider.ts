@@ -30,6 +30,13 @@ function parseProviderType(value: string | undefined): 'anthropic' | 'openai' | 
   return undefined
 }
 
+function parseProviderIndex(value: string | undefined): number {
+  if (!value) return -1
+  const normalized = value.trim().replace(/^#/, '')
+  const parsed = Number(normalized)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed - 1 : -1
+}
+
 export const call: LocalCommandCall = async (args, _context) => {
   const trimmed = args.trim()
   if (!trimmed) {
@@ -50,7 +57,7 @@ export const call: LocalCommandCall = async (args, _context) => {
   }
 
   if (command === 'use') {
-    const index = Number(rest[0]) - 1
+    const index = parseProviderIndex(rest[0])
     const provider = getCustomApiProviderByIndex(index)
     if (!provider) {
       return { type: 'text', value: `Provider not found: ${rest[0] ?? ''}` }
@@ -87,7 +94,7 @@ export const call: LocalCommandCall = async (args, _context) => {
   }
 
   if (command === 'rename') {
-    const index = Number(rest[0]) - 1
+    const index = parseProviderIndex(rest[0])
     const nextName = rest.slice(1).join(' ').trim()
     const provider = getCustomApiProviderByIndex(index)
     if (!provider || !nextName) {
@@ -101,7 +108,7 @@ export const call: LocalCommandCall = async (args, _context) => {
   }
 
   if (command === 'remove') {
-    const index = Number(rest[0]) - 1
+    const index = parseProviderIndex(rest[0])
     const provider = getCustomApiProviderByIndex(index)
     if (!provider) {
       return { type: 'text', value: 'Usage: /provider remove <provider-number>' }

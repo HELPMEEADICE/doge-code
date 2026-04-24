@@ -10,7 +10,7 @@ import { useKeybindings } from '../keybindings/useKeybinding.js';
 import { useAppState, useSetAppState } from '../state/AppState.js';
 import { convertEffortValueToLevel, type EffortLevel, getDefaultEffortForModel, modelSupportsEffort, modelSupportsMaxEffort, modelSupportsNoThinking, resolvePickerEffortPersistence } from '../utils/effort.js';
 import { getDefaultMainLoopModel, type ModelSetting, modelDisplayString, parseUserSpecifiedModel } from '../utils/model/model.js';
-import { getModelOptions } from '../utils/model/modelOptions.js';
+import { getModelOptions, type ModelOption } from '../utils/model/modelOptions.js';
 import { getSettingsForSource, updateSettingsForSource } from '../utils/settings/settings.js';
 import { ConfigurableShortcutHint } from './ConfigurableShortcutHint.js';
 import { Select } from './CustomSelect/index.js';
@@ -21,7 +21,7 @@ import { effortLevelToSymbol } from './EffortIndicator.js';
 export type Props = {
   initial: string | null;
   sessionModel?: ModelSetting;
-  onSelect: (model: string | null, effort: EffortLevel | undefined) => void;
+  onSelect: (model: string | null, effort: EffortLevel | undefined, option?: ModelOption) => void;
   onCancel?: () => void;
   isStandaloneCommand?: boolean;
   showFastModeNotice?: boolean;
@@ -244,11 +244,12 @@ export function ModelPicker(t0) {
       }
       const selectedModel = resolveOptionModel(value_0);
       const selectedEffort = hasToggledEffort && selectedModel && modelSupportsEffort(selectedModel) ? effort : undefined;
+      const selectedOption = optionsWithInitial.find(opt => (opt.value === null ? NO_PREFERENCE : opt.value) === value_0);
       if (value_0 === NO_PREFERENCE) {
-        onSelect(null, selectedEffort);
+        onSelect(null, selectedEffort, selectedOption);
         return;
       }
-      onSelect(value_0, selectedEffort);
+      onSelect(value_0, selectedEffort, selectedOption);
     };
     $[35] = effort;
     $[36] = hasToggledEffort;

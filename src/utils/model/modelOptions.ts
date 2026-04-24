@@ -32,7 +32,7 @@ import {
 } from './model.js'
 import { has1mContext } from '../context.js'
 import { getGlobalConfig } from '../config.js'
-import { readCurrentCustomApiProvider } from '../customApiStorage.js'
+import { formatCustomApiProviderIndex, formatCustomApiProviderType, readCurrentCustomApiProvider, readCustomApiProvidersStorage } from '../customApiStorage.js'
 
 // @[MODEL LAUNCH]: Update all the available and default model option strings below.
 
@@ -41,6 +41,7 @@ export type ModelOption = {
   label: string
   description: string
   descriptionForModel?: string
+  providerId?: string
 }
 
 export function getDefaultOptionForUser(fastMode = false): ModelOption {
@@ -280,6 +281,26 @@ function getOpusPlanOption(): ModelOption {
 // Each user tier (ant, Max/Team Premium, Pro/Team Standard/Enterprise, PAYG 1P, PAYG 3P) has its own list.
 function getModelOptionsBase(fastMode = false): ModelOption[] {
   const currentCustomProvider = readCurrentCustomApiProvider()
+  const allCustomProviders = readCustomApiProvidersStorage().providers ?? []
+  const allProviderOptions = allCustomProviders.flatMap((provider, index) => {
+    const configuredModel = provider.model?.trim()
+    const savedModels = (provider.savedModels ?? []).map(model => model.trim()).filter(Boolean)
+    const orderedModels = [
+      ...(configuredModel ? [configuredModel] : []),
+      ...savedModels.filter(model => model !== configuredModel),
+    ]
+    return orderedModels.map(model => ({
+      value: model,
+      label: model,
+      description: `${provider.name?.trim() || 'Provider'} · ${formatCustomApiProviderIndex(index)} · ${formatCustomApiProviderType(provider.provider)}`,
+      providerId: provider.id,
+    }))
+  })
+
+  if (allProviderOptions.length > 0) {
+    return allProviderOptions
+  }
+
   const customConfiguredModel =
     currentCustomProvider?.model?.trim() || process.env.ANTHROPIC_MODEL?.trim()
   const savedModels = (currentCustomProvider?.savedModels ?? [])
