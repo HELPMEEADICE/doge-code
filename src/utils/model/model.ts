@@ -30,7 +30,10 @@ import { LIGHTNING_BOLT } from '../../constants/figures.js'
 import { isModelAllowed } from './modelAllowlist.js'
 import { type ModelAlias, isModelAlias } from './aliases.js'
 import { capitalize } from '../stringUtils.js'
-import { readCustomApiProvidersStorage } from '../customApiStorage.js'
+import {
+  readCustomApiProvidersStorage,
+  readCustomApiStorage,
+} from '../customApiStorage.js'
 
 export type ModelShortName = string
 export type ModelName = string
@@ -363,6 +366,17 @@ export function renderDefaultModelSetting(
     return 'Opus 4.6 in plan mode, else Sonnet 4.6'
   }
   return renderModelName(parseUserSpecifiedModel(setting))
+}
+
+export function renderActiveModelSetting(setting: ModelSetting | undefined): string {
+  const persistedCustomModel = readCustomApiStorage().model?.trim()
+  if (setting === null && persistedCustomModel) {
+    return persistedCustomModel
+  }
+  const rendered = renderDefaultModelSetting(
+    setting ?? getDefaultMainLoopModelSetting(),
+  )
+  return setting === null ? `${rendered} (default)` : rendered
 }
 
 export function getOpus46PricingSuffix(fastMode: boolean): string {

@@ -11,7 +11,11 @@ import { KeyboardShortcutHint } from '../../components/design-system/KeyboardSho
 import { ConfigurableShortcutHint } from '../../components/ConfigurableShortcutHint.js'
 import { Box, Text } from '../../ink.js'
 import type { LocalJSXCommandCall } from '../../types/command.js'
-import { renderModelSetting } from '../../utils/model/model.js'
+import {
+  getUserSpecifiedModelSetting,
+  renderActiveModelSetting,
+  renderModelSetting,
+} from '../../utils/model/model.js'
 import type { ModelOption } from '../../utils/model/modelOptions.js'
 import {
   getSettingsForSource,
@@ -107,10 +111,15 @@ function saveTierModel(
   })
 }
 
+function getActiveModelSummary(): string {
+  return renderActiveModelSetting(getUserSpecifiedModelSetting() ?? null)
+}
+
 function buildSummary(): string {
   const selection = getSettingsForSource('userSettings')?.modelSelection
 
   return [
+    `Active ${getActiveModelSummary()}`,
     `Fast ${formatTierValue(selection?.fast)}`,
     `Balance ${formatTierValue(selection?.balance)}`,
     `Quality ${formatTierValue(selection?.quality)}`,
@@ -191,7 +200,7 @@ function ModelSelectionCommand({ onDone }: Props): React.ReactNode {
           Configure global Fast / Balance / Quality model redirection.
         </Text>
         <Box marginTop={1} marginBottom={1} flexDirection="column">
-          <Text>Current mappings</Text>
+          <Text>Current model and mappings</Text>
           <Text dimColor>{buildSummary()}</Text>
         </Box>
         <Select

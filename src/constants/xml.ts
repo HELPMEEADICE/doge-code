@@ -78,6 +78,7 @@ export const COMMON_INFO_ARGS = [
   'get',
   'check',
   'describe',
+  'info',
   'print',
   'version',
   'about',

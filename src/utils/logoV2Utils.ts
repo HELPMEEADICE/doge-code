@@ -13,6 +13,7 @@ import { getStoredChangelogFromMemory, parseChangelog } from './releaseNotes.js'
 import { gt } from './semver.js'
 import { loadMessageLogs } from './sessionStorage.js'
 import { getInitialSettings } from './settings/settings.js'
+import { readCurrentCustomApiProvider } from './customApiStorage.js'
 
 // Layout constants
 const MAX_LEFT_WIDTH = 50
@@ -253,9 +254,11 @@ export function getLogoDisplayData(): {
   const cwd = serverUrl
     ? `${displayPath} in ${serverUrl.replace(/^https?:\/\//, '')}`
     : displayPath
+  const currentProvider = readCurrentCustomApiProvider()
+  const providerLabel = currentProvider?.name ? `${currentProvider.name} · ` : ''
   const billingType = isClaudeAISubscriber()
     ? getSubscriptionName()
-    : 'API Usage FREE!'
+    : `${providerLabel}API Usage FREE!`
   const agentName = getInitialSettings().agent
 
   return {

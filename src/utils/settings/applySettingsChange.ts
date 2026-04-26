@@ -74,11 +74,15 @@ export function applySettingsChange(
     const prevEffort = prev.settings.effortLevel
     const newEffort = newSettings.effortLevel
     const effortChanged = prevEffort !== newEffort
+    const prevModel = prev.settings.model
+    const newModel = newSettings.model
+    const modelChanged = prevModel !== newModel
 
     return {
       ...prev,
       settings: newSettings,
       toolPermissionContext: newContext,
+      ...(modelChanged ? { mainLoopModel: newModel ?? null } : {}),
       // Only propagate a defined new value — when the disk key is absent
       // (e.g. /effort max for non-ants writes undefined; --effort CLI flag),
       // prev.settings.effortLevel can be stale (internal writes suppress the

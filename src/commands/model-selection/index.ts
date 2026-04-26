@@ -3,7 +3,11 @@ import { shouldInferenceConfigCommandBeImmediate } from '../../utils/immediateCo
 import {
   getSettings_DEPRECATED,
 } from '../../utils/settings/settings.js'
-import { renderModelSetting } from '../../utils/model/model.js'
+import {
+  getUserSpecifiedModelSetting,
+  renderActiveModelSetting,
+  renderModelSetting,
+} from '../../utils/model/model.js'
 
 function getTierSummary(): string {
   const selection = getSettings_DEPRECATED()?.modelSelection
@@ -27,7 +31,9 @@ function getTierSummary(): string {
       )
     : 'Default'
 
-  return `Fast ${fast} · Balance ${balance} · Quality ${quality}`
+  const active = renderActiveModelSetting(getUserSpecifiedModelSetting() ?? null)
+
+  return `Active ${active} · Fast ${fast} · Balance ${balance} · Quality ${quality}`
 }
 
 export default {

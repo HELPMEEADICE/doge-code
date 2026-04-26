@@ -189,6 +189,13 @@ export function convertAnthropicRequestToOpenAI(input: {
   for (const message of input.messages) {
     if (message.role === 'user') {
       const blocks = toBlocks(message.content)
+      const nonToolResultBlocks = blocks.filter(
+        block => block.type !== 'tool_result',
+      ) as AnyBlock[]
+      const userContent = mapAnthropicUserBlocksToOpenAIContent(nonToolResultBlocks)
+      if (userContent.length > 0) {
+        messages.push({ role: 'user', content: userContent })
+      }
 
       const toolResults = blocks.filter(block => block.type === 'tool_result')
       for (const result of toolResults) {
@@ -201,11 +208,6 @@ export function convertAnthropicRequestToOpenAI(input: {
           content: typeof content === 'string' ? content : JSON.stringify(content),
         })
       }
-
-      const userContent = mapAnthropicUserBlocksToOpenAIContent(
-        blocks.filter(block => block.type !== 'tool_result') as AnyBlock[],
-      )
-      if (userContent.length > 0) messages.push({ role: 'user', content: userContent })
       continue
     }
 

@@ -12,8 +12,8 @@ import { isBilledAsExtraUsage } from '../../utils/extraUsage.js';
 import { clearFastModeCooldown, isFastModeAvailable, isFastModeEnabled, isFastModeSupportedByModel } from '../../utils/fastMode.js';
 import { MODEL_ALIASES } from '../../utils/model/aliases.js';
 import { checkOpus1mAccess, checkSonnet1mAccess } from '../../utils/model/check1mAccess.js';
-import { getCurrentCustomApiProviderWithIndex, persistCustomApiProviders, readCustomApiProvidersStorage, readCustomApiStorage } from '../../utils/customApiStorage.js';
-import { getDefaultMainLoopModelSetting, isClaudeModel, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
+import { getCurrentCustomApiProviderWithIndex, persistCustomApiProviders, readCustomApiProvidersStorage } from '../../utils/customApiStorage.js';
+import { getUserSpecifiedModelSetting, isClaudeModel, isOpus1mMergeEnabled, renderActiveModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { validateModel } from '../../utils/model/validateModel.js';
 function ModelPickerWrapper(t0) {
@@ -31,7 +31,7 @@ function ModelPickerWrapper(t0) {
       logEvent("tengu_model_command_menu", {
         action: "cancel" as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
-      const displayModel = renderModelLabel(mainLoopModel);
+      const displayModel = renderActiveModelLabel(mainLoopModel);
       onDone(`Kept model as ${chalk.bold(displayModel)}`, {
         display: "system"
       });
@@ -65,7 +65,7 @@ function ModelPickerWrapper(t0) {
         mainLoopModel: model,
         mainLoopModelForSession: null
       }));
-      let message = `Set model to ${chalk.bold(renderModelLabel(model))}`;
+      let message = `Set model to ${chalk.bold(renderActiveModelLabel(model))}`;
       if (effort !== undefined) {
         message = message + ` with ${chalk.bold(effort)} effort`;
       }
@@ -132,7 +132,7 @@ function ModelPickerWrapper(t0) {
   }
   let t4;
   if ($[11] !== handleCancel || $[12] !== handleSelect || $[13] !== mainLoopModel || $[14] !== mainLoopModelForSession || $[15] !== t3) {
-    t4 = <ModelPicker initial={mainLoopModel} sessionModel={mainLoopModelForSession} onSelect={handleSelect} onCancel={handleCancel} isStandaloneCommand={true} showFastModeNotice={t3} />;
+    t4 = <ModelPicker initial={mainLoopModel ?? getUserSpecifiedModelSetting() ?? null} sessionModel={mainLoopModelForSession} onSelect={handleSelect} onCancel={handleCancel} isStandaloneCommand={true} showFastModeNotice={t3} />;
     $[11] = handleCancel;
     $[12] = handleSelect;
     $[13] = mainLoopModel;
@@ -233,7 +233,7 @@ function SetModelAndClose({
         mainLoopModel: modelValue,
         mainLoopModelForSession: null
       }));
-      let message = `Set model to ${chalk.bold(renderModelLabel(modelValue))}`;
+      let message = `Set model to ${chalk.bold(renderActiveModelLabel(modelValue))}`;
       let wasFastModeToggledOn = undefined;
       if (isFastModeEnabled()) {
         clearFastModeCooldown();
@@ -282,10 +282,10 @@ function ShowModelAndClose(t0) {
   const mainLoopModel = useAppState(_temp7);
   const mainLoopModelForSession = useAppState(_temp8);
   const effortValue = useAppState(_temp9);
-  const displayModel = renderModelLabel(mainLoopModel);
+  const displayModel = renderActiveModelLabel(mainLoopModel);
   const effortInfo = effortValue !== undefined ? ` (effort: ${effortValue})` : "";
   if (mainLoopModelForSession) {
-    onDone(`Current model: ${chalk.bold(renderModelLabel(mainLoopModelForSession))} (session override from plan mode)\nBase model: ${displayModel}${effortInfo}`);
+    onDone(`Current model: ${chalk.bold(renderActiveModelLabel(mainLoopModelForSession))} (session override from plan mode)\nBase model: ${displayModel}${effortInfo}`);
   } else {
     onDone(`Current model: ${displayModel}${effortInfo}`);
   }
@@ -322,13 +322,8 @@ export const call: LocalJSXCommandCall = async (onDone, _context, args) => {
   }
   return <ModelPickerWrapper onDone={onDone} />;
 };
-function renderModelLabel(model: string | null): string {
-  const persistedCustomModel = readCustomApiStorage().model?.trim();
-  if (model === null && persistedCustomModel) {
-    return persistedCustomModel;
-  }
-  const rendered = renderDefaultModelSetting(model ?? getDefaultMainLoopModelSetting());
-  return model === null ? `${rendered} (default)` : rendered;
+function renderActiveModelLabel(model: string | null): string {
+  return renderActiveModelSetting(model);
 }
 
 function getCurrentProviderHint(): string {
